@@ -62,6 +62,7 @@ recursos desplegados:
 | Gobierno por etiquetas: el analista consulta Gold y **no** Silver ni Bronze | ✅ 8 permitidas / 4 denegadas |
 | Intercambio B2B: el emisor EM001 lee y lista su carpeta, **no** la de EM005 | ✅ |
 | API de Gold: 5 rutas, `401` sin API key | ✅ |
+| Dashboard web en Cloud Run: sin contraseña no muestra datos; con ella, los KPIs de Gold | ✅ |
 | IAM: 33 pruebas reales con impersonación | ✅ |
 | Registro de cada despliegue en Cloud Logging + GCS | ✅ incluida la causa de cada fallo |
 
