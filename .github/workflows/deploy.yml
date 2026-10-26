@@ -1,0 +1,115 @@
+name: Deploy
+
+# Despliega la plataforma en Google Cloud con Workload Identity Federation (sin llaves JSON en GitHub):
+# GitHub emite un token OIDC para ESTE repositorio y Google lo canjea por credenciales de corta duración
+# de la cuenta paylake-deploy. Ejecuta lo mismo que infra/command/deploy.ps1 (versión local).
+# Variables del repo (las crea infra/bootstrap/bootstrap.ps1):
+#   GCP_PROJECT_ID, GCP_REGION, GCP_WIF_PROVIDER, GCP_DEPLOY_SA, TF_STATE_BUCKET
+# Opcionales: ALERT_EMAIL, ENABLE_CDC (true/false), ADMIN_MEMBERS (p.ej. ["user:tu@gmail.com"])
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "infra/platform/**", "sql/**", "dataproc/**", "scripts/**", "sample_data/**", ".github/workflows/deploy.yml"]
+  workflow_dispatch:
+    inputs:
+      run_pipeline:
+        description: "Ejecutar el pipeline después de desplegar"
+        type: boolean
+        default: true
+
+permissions:
+  id-token: write # necesario para OIDC
+  contents: read
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+env:
+  TF_VAR_project_id: ${{ vars.GCP_PROJECT_ID }}
+  TF_VAR_region: ${{ vars.GCP_REGION || 'southamerica-east1' }}
+  TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+  TF_VAR_enable_cdc: ${{ vars.ENABLE_CDC || 'true' }}
+  TF_VAR_admin_members: ${{ vars.ADMIN_MEMBERS || '[]' }}
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+
+  deploy:
+    needs: test
+    # Se omite hasta ejecutar infra/bootstrap/bootstrap.ps1 (que crea esta variable)
+    if: vars.GCP_WIF_PROVIDER != ''
+    runs-on: ubuntu-latest
+    environment: prod
+    defaults:
+      run:
+        working-directory: infra/platform
+    steps:
+      - name: Inicio del despliegue
+        run: |
+          echo "DEPLOY_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          echo "DEPLOY_ID=$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}-gh${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+        working-directory: .
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Terraform init
+        id: init
+        run: terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="prefix=platform"
+      - name: Terraform plan
+        id: plan
+        run: terraform plan -input=false -out=tfplan
+      - name: Terraform apply
+        id: apply
+        run: terraform apply -input=false tfplan
+      - name: Ejecutar pipeline (smoke test en GCP)
+        id: smoke
+        if: github.event_name == 'workflow_dispatch' && inputs.run_pipeline
+        run: |
+          WF=$(terraform output -raw pipeline_workflow)
+          EXEC=$(gcloud workflows run "$WF" --location="$TF_VAR_region" --data='{"generate": true}' --format=json)
+          STATUS=$(echo "$EXEC" | jq -r .state)
+          echo "exec=$(echo "$EXEC" | jq -r .name)" >> "$GITHUB_OUTPUT"
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "$EXEC" | jq -r .result
+          if [ "$STATUS" != "SUCCEEDED" ]; then
+            # El registro debe bastarse solo: etapa y causa
+            REASON=$(echo "$EXEC" | python3 ../../scripts/workflow_failure_reason.py)
+            echo "error=$REASON" >> "$GITHUB_OUTPUT"
+            echo "::error::Pipeline $STATUS - $REASON"
+            exit 1
+          fi
+      # Mismo registro que deploy.ps1: Cloud Logging paylake-deployments + GCS del estado (docs/observabilidad-despliegues.md)
+      - name: Registro del despliegue
+        if: always()
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          python3 ../../scripts/deploy_record.py \
+            --deployment-id "$DEPLOY_ID" \
+            --kind deploy \
+            --status "${{ job.status == 'success' && 'success' || job.status == 'cancelled' && 'cancelled' || 'failed' }}" \
+            --failed-step "${{ steps.init.outcome == 'failure' && 'init' || steps.plan.outcome == 'failure' && 'plan' || steps.apply.outcome == 'failure' && 'apply' || steps.smoke.outcome == 'failure' && 'pipeline' || '' }}" \
+            --started-at "$DEPLOY_STARTED_AT" \
+            --tf-dir . \
+            --plan-file tfplan \
+            --pipeline-execution "${{ steps.smoke.outputs.exec }}" \
+            --pipeline-status "${{ steps.smoke.outputs.status }}" \
+            --error "${{ steps.smoke.outputs.error }}"

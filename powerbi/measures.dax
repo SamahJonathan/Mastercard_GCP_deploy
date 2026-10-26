@@ -1,0 +1,36 @@
+// Medidas DAX para el modelo de Power BI sobre la capa Gold (BigQuery)
+
+Volumen USD = SUM ( daily_merchant_kpis[gross_amount_usd] )
+
+Transacciones = SUM ( daily_merchant_kpis[txn_count] )
+
+% Aprobación =
+DIVIDE ( SUM ( daily_merchant_kpis[approved_count] ), [Transacciones] )
+
+Ticket promedio USD =
+DIVIDE ( [Volumen USD], SUM ( daily_merchant_kpis[approved_count] ) )
+
+Intercambio USD = SUM ( interchange_settlement[interchange_fee_usd] )
+
+Tasa efectiva =
+DIVIDE ( [Intercambio USD], SUM ( interchange_settlement[amount_usd] ) )
+
+Volumen 7d (promedio móvil) =
+AVERAGEX (
+    DATESINPERIOD ( Calendario[Date], MAX ( Calendario[Date] ), -7, DAY ),
+    [Volumen USD]
+)
+
+Variación vs día anterior =
+VAR hoy = [Volumen USD]
+VAR ayer = CALCULATE ( [Volumen USD], DATEADD ( Calendario[Date], -1, DAY ) )
+RETURN DIVIDE ( hoy - ayer, ayer )
+
+Alertas de fraude = COUNTROWS ( fraud_alerts )
+
+Alertas alto riesgo =
+CALCULATE ( [Alertas de fraude], fraud_alerts[risk_score] >= 50 )
+
+Volumen transfronterizo USD = SUM ( cross_border_corridors[amount_usd] )
+
+% Transfronterizo = DIVIDE ( [Volumen transfronterizo USD], [Volumen USD] )

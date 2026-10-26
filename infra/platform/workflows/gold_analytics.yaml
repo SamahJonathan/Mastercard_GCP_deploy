@@ -1,0 +1,61 @@
+# Job diario de Spark (Dataproc Serverless): calidad de datos sobre Silver + analítica Gold.
+# Lo dispara Cloud Scheduler una vez al día. Workflows no trae conector de Dataproc: se llama a la
+# API REST con OAuth2 y se consulta el batch cada 30 s. Si Spark falla, el workflow falla y salta la alerta.
+main:
+  params: [args]
+  steps:
+    - init:
+        assign:
+          - parent: ${"projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_ID") + "/locations/" + sys.get_env("REGION")}
+          - batch_id: ${"gold-analytics-" + string(int(sys.now()))}
+          - api: "https://dataproc.googleapis.com/v1/"
+    - create_batch:
+        call: http.post
+        args:
+          url: ${api + parent + "/batches?batchId=" + batch_id}
+          auth:
+            type: OAuth2
+          body:
+            labels:
+              pipeline: gold-analytics
+            pysparkBatch:
+              mainPythonFileUri: ${sys.get_env("JOB_URI")}
+              args:
+                - ${"--silver-path=" + sys.get_env("SILVER_PATH")}
+                - ${"--gold-path=" + sys.get_env("GOLD_PATH")}
+            runtimeConfig:
+              version: "2.2"
+              properties:
+                # El mínimo de Dataproc Serverless: 1 driver y 2 ejecutores de 4 vCPU
+                spark.driver.cores: "4"
+                spark.executor.cores: "4"
+                spark.executor.instances: "2"
+                spark.dynamicAllocation.maxExecutors: "2"
+            environmentConfig:
+              executionConfig:
+                serviceAccount: ${sys.get_env("DATAPROC_SA")}
+                subnetworkUri: ${sys.get_env("SUBNET")}
+                stagingBucket: ${sys.get_env("STAGING_BUCKET")}
+                ttl: "1800s"
+    - wait:
+        call: sys.sleep
+        args:
+          seconds: 30
+    - get_batch:
+        call: http.get
+        args:
+          url: ${api + parent + "/batches/" + batch_id}
+          auth:
+            type: OAuth2
+        result: batch
+    - check:
+        switch:
+          - condition: ${batch.body.state == "SUCCEEDED"}
+            next: done
+          - condition: ${batch.body.state == "FAILED" or batch.body.state == "CANCELLED"}
+            raise: '${"Batch " + batch_id + " terminó en " + batch.body.state + ": " + default(map.get(batch.body, "stateMessage"), "sin detalle")}'
+        next: wait
+    - done:
+        return:
+          batch: ${batch.body.name}
+          state: ${batch.body.state}

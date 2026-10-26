@@ -1,0 +1,29 @@
+{
+  "card_monthly_segments": {
+    "partition": "month",
+    "placeholder": "1900-01",
+    "columns": {
+      "pan_token": "STRING", "issuer_id": "STRING", "txn_count": "INT64", "approved_count": "INT64",
+      "spend_usd": "FLOAT64", "distinct_merchants": "INT64", "active_days": "INT64",
+      "cross_border_share": "FLOAT64", "ecommerce_share": "FLOAT64", "spend_quartile": "INT64",
+      "spend_pct_rank_in_issuer": "FLOAT64", "segment": "STRING"
+    }
+  },
+  "merchant_daily_trends": {
+    "partition": "txn_date",
+    "placeholder": "1900-01-01",
+    "columns": {
+      "merchant_id": "STRING", "merchant_name": "STRING", "mcc_category": "STRING", "txn_count": "INT64",
+      "gross_usd": "FLOAT64", "gross_usd_7d_avg": "FLOAT64", "rank_in_category": "INT64",
+      "share_of_category": "FLOAT64", "delta_vs_prev_day": "FLOAT64"
+    }
+  },
+  "dq_results": {
+    "partition": "run_date",
+    "placeholder": "1900-01-01",
+    "columns": {
+      "rule": "STRING", "column_name": "STRING", "outcome": "STRING", "failed_rows": "INT64",
+      "total_rows": "INT64", "observed": "FLOAT64", "threshold": "FLOAT64", "evaluated_at": "TIMESTAMP"
+    }
+  }
+}

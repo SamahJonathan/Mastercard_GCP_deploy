@@ -1,0 +1,29 @@
+# Llaves y secretos: NUNCA al repositorio
+*.pem
+*.key
+*.json.key
+.env
+*.tfvars
+backend.hcl
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Datos generados localmente
+data/
+
+# Logs y registros de despliegue locales (tienen correos y el ID del proyecto)
+logs/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+tfplan
+tfplan-*
+*.tfplan
+*_override.tf
+infra/platform/.build/

@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Tests (bronze / silver / gold)
+        run: pytest -q
+      - name: Smoke test del pipeline local
+        run: PYTHONPATH=src python -m payments_lake.pipeline demo --days 2 --batches-per-day 2 --batch-size 500
+      - name: Sintaxis del job de Spark, del loader del core y de los scripts
+        run: python -m py_compile dataproc/jobs/gold_card_analytics.py scripts/core_db/load_core_db.py scripts/*.py
+
+  functions-compat:
+    name: tests con las versiones de las Cloud Run functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      # Las mismas versiones exactas que instala Cloud Build al desplegar (src/requirements.txt)
+      - run: pip install -r src/requirements.txt pytest
+      - run: pytest -q
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive ..
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+
+  workflows-yaml:
+    name: sintaxis de los Cloud Workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -c "import sys, yaml; [yaml.safe_load(open(f)) for f in sys.argv[1:]]" infra/platform/workflows/*.yaml
+
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck de los scripts
+        run: shellcheck infra/command/deploy.sh dashboard/deploy_cloudrun.sh

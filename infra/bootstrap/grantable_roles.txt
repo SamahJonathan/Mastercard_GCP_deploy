@@ -1,0 +1,23 @@
+# Techo de la cuenta de despliegue: los únicos roles que puede otorgar a nivel de proyecto.
+#
+# La cuenta paylake-deploy tiene roles/resourcemanager.projectIamAdmin CON UNA CONDICIÓN: sólo puede
+# otorgar o quitar, a nivel de proyecto, los roles de esta lista. Así no puede darse Owner/Editor a sí
+# misma ni a nadie: aunque Terraform (o quien robe la identidad de GitHub) lo intente, IAM lo rechaza.
+#
+# infra/bootstrap/bootstrap.ps1 lee este archivo para armar la condición, e infra/platform/iam.tf lo lee
+# para validar (precondition) que cada rol que otorga a nivel de proyecto está aquí.
+# Si agregas un rol a nivel de proyecto en iam.tf, agrégalo aquí y vuelve a correr el bootstrap.
+# {project} se reemplaza por el ID del proyecto.
+
+# Roles propios del proyecto (permisos acción por acción, definidos en infra/platform/iam.tf)
+projects/{project}/roles/paylakeMetricWriter
+projects/{project}/roles/paylakeBigQueryJobRunner
+projects/{project}/roles/paylakeLayerReader
+projects/{project}/roles/paylakeWorkflowStarter
+projects/{project}/roles/paylakeDataprocSubmitter
+projects/{project}/roles/paylakeDataprocWorker
+projects/{project}/roles/paylakeLogWriter
+projects/{project}/roles/paylakeFolderReader
+
+# Predefinido, sólo donde el servicio no admite otra cosa (ver docs/iam.md)
+roles/artifactregistry.writer

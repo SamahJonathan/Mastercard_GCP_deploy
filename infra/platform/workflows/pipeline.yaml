@@ -1,0 +1,69 @@
+# Pipeline medallion: Ingesta -> Bronze->Silver -> Silver->Gold, con reintentos y backoff.
+# Cloud Scheduler lo inicia cada hora con {"generate": true}; sin "generate" sólo reprocesa las capas.
+# Las URLs de las functions llegan como variables de entorno del workflow (orchestration.tf).
+main:
+  params: [args]
+  steps:
+    - init:
+        assign:
+          - generate: ${default(map.get(args, "generate"), false)}
+          - output: {}
+    - should_ingest:
+        switch:
+          - condition: ${generate == true}
+            next: ingest_batch
+        next: bronze_to_silver
+    - ingest_batch:
+        call: run_stage
+        args:
+          url: ${sys.get_env("INGEST_URL")}
+          body: ${args}
+        result: ingest
+    - save_ingest:
+        assign:
+          - output.ingest: ${ingest}
+    - bronze_to_silver:
+        call: run_stage
+        args:
+          url: ${sys.get_env("BRONZE_TO_SILVER_URL")}
+          body: ${args}
+        result: silver
+    - save_silver:
+        assign:
+          - output.silver: ${silver}
+    - silver_to_gold:
+        call: run_stage
+        args:
+          url: ${sys.get_env("SILVER_TO_GOLD_URL")}
+          body: ${args}
+        result: gold
+    - save_gold:
+        assign:
+          - output.gold: ${gold}
+    - done:
+        return: ${output}
+
+# Cada etapa: POST con token OIDC de la cuenta del workflow (las functions no son públicas).
+# Reintenta 429, 502, 503, 504 y errores de conexión: 3 veces, 10 s inicial, x2.
+run_stage:
+  params: [url, body]
+  steps:
+    - call_stage:
+        try:
+          call: http.post
+          args:
+            url: ${url}
+            body: ${body}
+            auth:
+              type: OIDC
+            timeout: 600
+          result: response
+        retry:
+          predicate: ${http.default_retry_predicate}
+          max_retries: 3
+          backoff:
+            initial_delay: 10
+            max_delay: 120
+            multiplier: 2
+    - done:
+        return: ${response.body}

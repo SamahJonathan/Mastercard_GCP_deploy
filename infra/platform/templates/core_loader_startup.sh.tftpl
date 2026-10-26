@@ -1,0 +1,54 @@
+#!/bin/bash
+# Arranque de la VM de carga (se ejecuta en cada boot; todo es idempotente):
+# instala el cliente de PostgreSQL, carga el core bancario, prepara la replicación lógica
+# y programa actividad nueva cada 15 minutos para que Datastream la replique como CDC.
+set -euxo pipefail
+
+if ! command -v psql >/dev/null; then
+  apt-get update -q
+  apt-get install -y -q postgresql-client
+fi
+
+mkdir -p /opt/corebank
+cd /opt/corebank
+gcloud storage cp "${loader_uri}" load_core_db.py
+gcloud storage cp "${snapshot_uri}" snapshot.json
+
+cat > /opt/corebank/env.sh <<'ENV'
+export PGHOST="${db_host}"
+export PGPORT=5432
+export PGDATABASE="${db_name}"
+export PGUSER="${db_user}"
+export PGSSLMODE=require
+export PGPASSWORD="$(gcloud secrets versions access latest --secret='${db_password_id}' --project='${project_id}')"
+ENV
+chmod 600 /opt/corebank/env.sh
+
+source /opt/corebank/env.sh
+until pg_isready -h "$PGHOST" -p 5432; do sleep 10; done
+python3 load_core_db.py init snapshot.json | psql -v ON_ERROR_STOP=1
+
+cat > /etc/systemd/system/corebank-cdc.service <<'UNIT'
+[Unit]
+Description=Simula actividad nueva en el core bancario (fuente CDC de Datastream)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/corebank
+ExecStart=/bin/bash -c 'source /opt/corebank/env.sh && python3 load_core_db.py cdc snapshot.json --new 25 | psql -v ON_ERROR_STOP=1'
+UNIT
+
+cat > /etc/systemd/system/corebank-cdc.timer <<'UNIT'
+[Unit]
+Description=Cada 15 minutos
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=15min
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now corebank-cdc.timer
