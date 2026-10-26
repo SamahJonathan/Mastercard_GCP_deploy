@@ -68,6 +68,11 @@ Personas (variables de Terraform, sin cuentas propias que administrar):
 | `analyst_members` | lo mismo que `analyst` (sólo Gold) |
 | `consultant_members` | consultan Gold directo con su cuenta de Google, sin cambiar de identidad |
 
+Quien **no tiene cuenta de Google** no puede entrar a BigQuery (IAM sólo acepta identidades de Google). Para esos
+casos está el **dashboard web** en Cloud Run: muestra los productos de Gold detrás de una contraseña guardada en
+Secret Manager (`terraform output -raw dashboard_password`). Lo lee sólo la cuenta `dashboard`, y la API key de Gold
+nunca llega al navegador.
+
 ## Gobierno por etiquetas
 
 1. Cada dataset lleva dos etiquetas de Resource Manager:

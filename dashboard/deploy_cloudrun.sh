@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Despliega el dashboard de Streamlit en Cloud Run.
 # Cloud Run construye la imagen desde el código (buildpacks + Procfile), escala a cero cuando nadie lo usa
-# y lee la API key desde Secret Manager con la cuenta paylake-dev-dashboard (iam.tf), sin copiarla a ningún lado.
+# y lee la API key y su contraseña de acceso desde Secret Manager con la cuenta paylake-dev-dashboard (iam.tf),
+# sin copiarlas a ningún lado. La contraseña: terraform -chdir=infra/platform output -raw dashboard_password
 #
 #   bash dashboard/deploy_cloudrun.sh <proyecto> [región]
 set -euo pipefail
@@ -18,7 +19,7 @@ gcloud run deploy paylake-dev-dashboard \
   --source . \
   --service-account "paylake-dev-dashboard@${PROJECT}.iam.gserviceaccount.com" \
   --set-env-vars "GOLD_API_URL=${API_URL}" \
-  --set-secrets "GOLD_API_KEY=paylake-dev-api-key:latest" \
+  --set-secrets "GOLD_API_KEY=paylake-dev-api-key:latest,DASHBOARD_PASSWORD=paylake-dev-dashboard-password:latest" \
   --allow-unauthenticated \
   --max-instances 2 \
   --memory 1Gi \

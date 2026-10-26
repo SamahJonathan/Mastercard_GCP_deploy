@@ -30,7 +30,7 @@ locals {
       bronze-to-silver = "Function bronze->silver: lee Bronze, escribe Silver y registra sus tablas"
       silver-to-gold   = "Function silver->gold: lee Silver, escribe Gold y las liquidaciones salientes"
       api              = "Function de la API: sólo lee Gold"
-      dashboard        = "Dashboard Streamlit (Cloud Run): sólo lee la API key"
+      dashboard        = "Dashboard Streamlit (Cloud Run): sólo lee la API key y su contraseña"
       fn-build         = "Cloud Build de las functions: lee el código y publica la imagen"
       pipeline-wf      = "Workflow del pipeline: sólo invoca las 3 etapas"
       analytics-wf     = "Workflow diario: sólo lanza el batch de Dataproc con la cuenta dataproc"
@@ -284,6 +284,13 @@ resource "google_bigquery_connection_iam_member" "delegate" {
   role          = local.role["paylakeConnectionUser"]
   member        = local.sa[each.key]
 
+  depends_on = [google_project_iam_custom_role.this]
+}
+
+resource "google_secret_manager_secret_iam_member" "dashboard_password" {
+  secret_id  = google_secret_manager_secret.this["dashboard-password"].id
+  role       = local.role["paylakeSecretReader"]
+  member     = local.sa["dashboard"]
   depends_on = [google_project_iam_custom_role.this]
 }
 

@@ -56,11 +56,18 @@ resource "random_password" "api_key" {
   special = false
 }
 
+# Contraseña del dashboard web (para quien no tiene cuenta de Google y no puede entrar a BigQuery)
+resource "random_password" "dashboard" {
+  length  = 16
+  special = false
+}
+
 locals {
   secrets = merge(
     {
-      pan-token-secret = random_password.pan_token_secret.result
-      api-key          = random_password.api_key.result
+      pan-token-secret   = random_password.pan_token_secret.result
+      api-key            = random_password.api_key.result
+      dashboard-password = random_password.dashboard.result
     },
     var.enable_cdc ? { core-db-password = random_password.core_db[0].result } : {},
   )
