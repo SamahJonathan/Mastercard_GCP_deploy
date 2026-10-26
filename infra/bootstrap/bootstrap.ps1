@@ -209,6 +209,7 @@ $lines = @("project_id  = `"$ProjectId`"", "region      = `"$Region`"", "github_
 if ($AlertEmail) { $lines += "alert_email = `"$AlertEmail`"" }
 if ($Account) { $lines += "admin_members = [`"user:$Account`"]" }
 $lines | Set-Content -Path $TfVars -Encoding utf8
+if (Get-Command terraform -ErrorAction SilentlyContinue) { terraform fmt $TfVars | Out-Null }  # deploy.ps1 exige fmt
 
 Step "9/9 Variables de GitHub Actions"
 if ((Get-Command gh -ErrorAction SilentlyContinue) -and (Exists { gh repo view $GithubRepo })) {

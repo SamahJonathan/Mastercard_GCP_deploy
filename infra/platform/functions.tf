@@ -6,6 +6,9 @@ data "archive_file" "src" {
   source_dir  = "${path.module}/../../src"
   output_path = "${path.module}/.build/payments_lake.zip"
   excludes    = ["**/__pycache__/**", "**/*.pyc"]
+  # Permisos fijos: sin esto el zip (y su hash) cambia entre Windows y Linux, y cada despliegue alternado
+  # entre el PC y GitHub Actions volvería a compilar las 4 functions
+  output_file_mode = "0644"
 }
 
 # El nombre lleva el hash: un cambio de código sube un objeto nuevo y Cloud Functions vuelve a construir
