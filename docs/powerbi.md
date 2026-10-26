@@ -8,9 +8,14 @@ Power BI Desktop trae un conector nativo de **Google BigQuery**: no hace falta i
 2. *Iniciar sesión* con una cuenta de Google que esté en `analyst_members` o `consultant_members`
    ([`variables.tf`](../infra/platform/variables.tf)). Esa cuenta recibe `paylakeLayerReader` sólo sobre los
    datasets con la etiqueta `layer = gold`, más `paylakeBigQueryJobRunner` (consultas y Storage Read API).
-3. En el navegador aparecen el proyecto y **sólo** el dataset `paylake_dev_gold`: Silver y Bronze no se ven.
-4. Elegir `daily_merchant_kpis`, `interchange_settlement`, `fraud_alerts`, `cross_border_corridors`,
-   `fraud_rule_performance`, `card_monthly_segments`.
+3. En el navegador, abrir **`paylake_dev_reports`** y elegir `daily_merchant_kpis`, `interchange_settlement`,
+   `fraud_alerts`, `cross_border_corridors`, `fraud_rule_performance`, `card_monthly_segments`.
+
+`paylake_dev_reports` tiene una **vista** por cada tabla de Gold. Las tablas del lake son externas (BigLake sobre
+los Parquet de Cloud Storage) y el navegador del conector **no lista tablas externas**: por eso `paylake_dev_gold`
+aparece vacío. Las vistas llevan la misma etiqueta `layer = gold`, así que un analista las lee igual que Gold y
+sigue sin ver Silver ni Bronze. Las de las tablas de Spark las crea Terraform; las del pipeline, la function
+`silver-to-gold` al registrar cada tabla.
 
 Con la opción *Usar la API de Storage* activada, Power BI lee con la Storage Read API (rápida); por eso el rol
 incluye `bigquery.readsessions.*`.

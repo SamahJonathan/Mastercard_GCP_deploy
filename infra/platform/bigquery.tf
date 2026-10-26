@@ -6,12 +6,14 @@
 #    Ningún humano ni analista tiene ese permiso: Bronze queda protegida sólo por IAM.
 #  - Gobierno por ETIQUETAS (Resource Manager tags) en los datasets: layer y sensitivity. Los permisos de
 #    lectura se otorgan con condiciones sobre esas etiquetas (iam.tf) y alcanzan a las tablas futuras.
+#  - reports: una vista por tabla de Gold para herramientas de BI. El navegador del conector de BigQuery de
+#    Power BI no lista tablas externas (todas las del lake lo son), pero sí vistas.
 
 resource "google_bigquery_dataset" "layer" {
-  for_each    = toset(["bronze", "silver", "gold"])
+  for_each    = toset(["bronze", "silver", "gold", "reports"])
   dataset_id  = "${local.ds_prefix}_${each.key}"
   location    = var.region
-  description = "Payments Lakehouse: capa ${each.key}"
+  description = each.key == "reports" ? "Payments Lakehouse: vistas de Gold para BI" : "Payments Lakehouse: capa ${each.key}"
 
   delete_contents_on_destroy = var.environment != "prod"
 
@@ -39,9 +41,10 @@ locals {
     sensitivity = ["restricted", "confidential", "public"]
   }
   dataset_tags = {
-    bronze = { layer = "bronze", sensitivity = "restricted" }   # PAN en claro
-    silver = { layer = "silver", sensitivity = "confidential" } # tokens de tarjeta, detalle transaccional
-    gold   = { layer = "gold", sensitivity = "public" }         # agregados para negocio
+    bronze  = { layer = "bronze", sensitivity = "restricted" }   # PAN en claro
+    silver  = { layer = "silver", sensitivity = "confidential" } # tokens de tarjeta, detalle transaccional
+    gold    = { layer = "gold", sensitivity = "public" }         # agregados para negocio
+    reports = { layer = "gold", sensitivity = "public" }         # vistas sobre Gold: mismo acceso que Gold
   }
 }
 
@@ -162,4 +165,20 @@ resource "terraform_data" "table_schema" {
     { for k, v in local.spark_gold_tables : k => v.columns },
   )
   input = sha1(jsonencode(each.value))
+}
+
+# Vistas para BI de las tablas de Spark (las de las tablas del pipeline las crea storage.py al registrarlas).
+# Vistas comunes, no autorizadas: quien las consulta necesita también acceso a Gold, y lo tiene por la etiqueta.
+resource "google_bigquery_table" "report_view" {
+  for_each            = local.spark_gold_tables
+  dataset_id          = google_bigquery_dataset.layer["reports"].dataset_id
+  table_id            = each.key
+  deletion_protection = false
+
+  view {
+    query          = "SELECT * FROM `${var.project_id}.${google_bigquery_dataset.layer["gold"].dataset_id}.${each.key}`"
+    use_legacy_sql = false
+  }
+
+  depends_on = [google_bigquery_table.spark_gold]
 }

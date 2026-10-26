@@ -3,7 +3,7 @@
 Looker Studio es gratis y lee BigQuery directo; no tiene recursos de Terraform, así que se arma desde la web.
 
 1. [lookerstudio.google.com](https://lookerstudio.google.com) → *Crear → Fuente de datos → BigQuery*.
-2. Proyecto `paylake-gcp-xxxx` → dataset `paylake_dev_gold` → tabla (`daily_merchant_kpis`, `interchange_settlement`…).
+2. Proyecto `paylake-gcp-xxxx` → dataset `paylake_dev_reports` (vistas de Gold) → tabla (`daily_merchant_kpis`, `interchange_settlement`…).
 3. *Credenciales de la fuente*: **credenciales del lector** (*viewer's credentials*). Cada persona ve sólo lo que su
    cuenta puede leer en BigQuery: un analista ve Gold y nada más, igual que en Power BI. Con *credenciales del
    propietario* todos verían con los permisos de quien creó la fuente.

@@ -9,7 +9,7 @@ Todo lo que se ejecuta a mano vive aquí. Requisitos y primera vez: [docs/antes-
 | `deploy.ps1 -PlanOnly` | antes de un cambio delicado | sólo el plan |
 | `deploy.ps1 -RunPipeline` | para verlo funcionar | además ejecuta el workflow del pipeline y espera el resultado |
 | `deploy.sh [--auto] [--pipeline]` | Cloud Shell / Linux | lo mismo en bash |
-| `check_iam.ps1` | después de tocar IAM | 32 pruebas reales: lo permitido y lo que debe quedar denegado |
+| `check_iam.ps1` | después de tocar IAM | 33 pruebas reales: lo permitido y lo que debe quedar denegado |
 | `destroy.ps1 -PauseOnly` | al dejar de mostrarlo | pausa los jobs de Cloud Scheduler |
 | `destroy.ps1 -StopCdc` | para no pagar por hora | además apaga Cloud SQL, la VM y Datastream |
 | `destroy.ps1` | al terminar | destruye la plataforma (el bootstrap se conserva) |

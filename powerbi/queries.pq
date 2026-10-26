@@ -3,12 +3,13 @@
 let
     Proyecto = "paylake-gcp-xxxx",
     Fuente = GoogleBigQuery.Database([BillingProject = Proyecto, UseStorageApi = true]),
-    Gold = Fuente{[Name = Proyecto]}[Data]{[Name = "paylake_dev_gold", Kind = "Schema"]}[Data],
+    // Vistas de Gold para BI: el navegador no lista las tablas externas de paylake_dev_gold
+    Reportes = Fuente{[Name = Proyecto]}[Data]{[Name = "paylake_dev_reports", Kind = "Schema"]}[Data],
 
     Intercambio = Value.NativeQuery(
         Fuente{[Name = Proyecto]}[Data],
         "SELECT txn_date, issuer_name, acquirer_id, txn_count, amount_usd, interchange_fee_usd, effective_rate
-         FROM `" & Proyecto & ".paylake_dev_gold.interchange_settlement`
+         FROM `" & Proyecto & ".paylake_dev_reports.interchange_settlement`
          WHERE txn_date >= FORMAT_DATE('%F', DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))",
         null,
         [EnableFolding = true]

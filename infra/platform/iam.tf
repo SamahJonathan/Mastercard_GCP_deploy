@@ -72,8 +72,10 @@ locals {
       permissions = ["storage.buckets.get", "storage.objects.get", "storage.objects.list", "storage.objects.create", "storage.objects.delete"]
     }
     paylakeTableRegistrar = {
-      title       = "Registrar tablas BigLake en un dataset"
-      permissions = ["bigquery.datasets.get", "bigquery.tables.create", "bigquery.tables.get", "bigquery.tables.update"]
+      title = "Registrar tablas BigLake y sus vistas en un dataset"
+      # getData: BigQuery valida que quien crea una vista pueda leer la tabla de origen. La identidad que la
+      # pide ya escribe esos mismos datos, así que no gana acceso nuevo.
+      permissions = ["bigquery.datasets.get", "bigquery.tables.create", "bigquery.tables.get", "bigquery.tables.update", "bigquery.tables.getData"]
     }
     paylakeConnectionUser = {
       title       = "Crear tablas BigLake con la conexión del lake"
@@ -267,7 +269,7 @@ resource "google_project_iam_member" "grant" {
 # --- Recursos puntuales -------------------------------------------------------------------------
 
 resource "google_bigquery_dataset_iam_member" "registrar" {
-  for_each   = { silver = "bronze-to-silver", gold = "silver-to-gold" }
+  for_each   = { silver = "bronze-to-silver", gold = "silver-to-gold", reports = "silver-to-gold" }
   dataset_id = google_bigquery_dataset.layer[each.key].dataset_id
   role       = local.role["paylakeTableRegistrar"]
   member     = local.sa[each.value]

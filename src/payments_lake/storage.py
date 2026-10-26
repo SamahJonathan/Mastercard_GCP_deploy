@@ -177,5 +177,13 @@ def register_biglake_table(dataset: str, table: str, table_path: str, partition_
     t = bigquery.Table(table_id)
     t.external_data_configuration = ext
     t.labels = {"managed-by": "pipeline"}
-    bigquery.Client(project=os.environ["GCP_PROJECT"]).create_table(t, exists_ok=True)
+    client = bigquery.Client(project=os.environ["GCP_PROJECT"])
+    client.create_table(t, exists_ok=True)
+
+    # Vista para BI: el navegador de Power BI no lista tablas externas, pero sí vistas
+    reports = os.getenv("BQ_DATASET_REPORTS")
+    if reports and dataset == os.getenv("BQ_DATASET_GOLD"):
+        view = bigquery.Table(f"{os.environ['GCP_PROJECT']}.{reports}.{table}")
+        view.view_query = f"SELECT * FROM `{table_id}`"
+        client.create_table(view, exists_ok=True)
     _registered.add(table_id)

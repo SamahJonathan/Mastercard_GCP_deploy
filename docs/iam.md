@@ -45,7 +45,7 @@ bucket_grants    = [{ id = "api", bucket = "gold", role = "paylakeObjectReader",
 |---|---|---|
 | `ingest` | aterriza lotes en Bronze | `paylakeObjectCreator` → bronze, **sólo** `transactions/`; `paylakeMetricWriter` → proyecto |
 | `bronze-to-silver` | Bronze → Silver | `paylakeObjectReader` → bronze; `paylakeObjectWriter` → silver; `paylakeTableRegistrar` → dataset silver; `paylakeConnectionUser` → conexión BigLake; `paylakeSecretReader` → secreto del token de PAN; métricas |
-| `silver-to-gold` | Silver → Gold + liquidaciones | `paylakeObjectReader` → silver; `paylakeObjectWriter` → gold; `paylakeObjectReplacer` → exchange, **sólo** `outbound/`; registrar tablas en gold; conexión; métricas |
+| `silver-to-gold` | Silver → Gold + liquidaciones | `paylakeObjectReader` → silver; `paylakeObjectWriter` → gold; `paylakeObjectReplacer` → exchange, **sólo** `outbound/`; registrar tablas en gold y sus vistas en reports; conexión; métricas |
 | `api` | sirve Gold por HTTP | `paylakeObjectReader` → gold; `paylakeSecretReader` → secreto de la API key |
 | `dashboard` | Streamlit en Cloud Run | `paylakeSecretReader` → secreto de la API key |
 | `fn-build` | compila las functions | `paylakeLogWriter` → proyecto; `roles/artifactregistry.writer` → proyecto; `paylakeFolderReader` → proyecto **condicionado** al bucket `gcf-v2-sources-*` |
@@ -131,7 +131,7 @@ que su rol está en esa lista.
 ## Comprobaciones
 
 `./infra/command/check_iam.ps1` (también lo corre `deploy.ps1` al final) actúa como cada identidad e intenta
-operaciones reales: 32 casos, la mayoría para verificar lo que **debe quedar denegado**.
+operaciones reales: 33 casos, la mayoría para verificar lo que **debe quedar denegado**.
 
 ¿Por qué no un simulador? Policy Troubleshooter (el simulador de IAM de Google) no evalúa las
 condiciones por prefijo de objeto de Cloud Storage: evalúa `resource.name` contra el bucket y responde

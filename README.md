@@ -35,9 +35,9 @@ archivos de liquidación que cada banco emisor descarga de **su** carpeta. Todo 
 | **Cloud Run functions** | 4 functions: ingesta, bronze→silver, silver→gold, API — [`functions.tf`](infra/platform/functions.tf), [`handlers.py`](src/payments_lake/handlers.py) |
 | **Datastream + Cloud SQL** | backfill + CDC de PostgreSQL a Bronze en JSONL, TLS verificado, IPs de Datastream autorizadas — [`datastream.tf`](infra/platform/datastream.tf), [`core_db.tf`](infra/platform/core_db.tf), adaptador en [`silver.py`](src/payments_lake/silver.py) |
 | **Dataproc Serverless** | job PySpark diario: reglas de calidad sobre Silver + segmentos y tendencias en Gold — [`gold_card_analytics.py`](dataproc/jobs/gold_card_analytics.py) |
-| **BigQuery** | 3 datasets, conexión BigLake, tablas particionadas Hive, 12 consultas con tope de 1 GB — [`bigquery.tf`](infra/platform/bigquery.tf), [`sql/`](sql/) |
+| **BigQuery** | 4 datasets (3 capas + vistas para BI), conexión BigLake, tablas particionadas Hive, 12 consultas con tope de 1 GB — [`bigquery.tf`](infra/platform/bigquery.tf), [`sql/`](sql/) |
 | **Cloud Workflows / Scheduler** | pipeline con reintentos y backoff; Spark diario — [`orchestration.tf`](infra/platform/orchestration.tf), [`workflows/`](infra/platform/workflows/) |
-| **IAM** | 16 identidades (15 de la plataforma + la de despliegue), 17 roles propios, techo de roles otorgables, 32 pruebas reales — [`iam.tf`](infra/platform/iam.tf), [`docs/iam.md`](docs/iam.md) |
+| **IAM** | 16 identidades (15 de la plataforma + la de despliegue), 17 roles propios, techo de roles otorgables, 33 pruebas reales — [`iam.tf`](infra/platform/iam.tf), [`docs/iam.md`](docs/iam.md) |
 | **Gobierno** | etiquetas `layer` / `sensitivity` en los datasets; el analista sólo ve Gold — [`bigquery.tf`](infra/platform/bigquery.tf) |
 | **Seguridad** | Cloud KMS, Secret Manager, Audit Logs con sink a bucket de auditoría y alertas — [`audit.tf`](infra/platform/audit.tf) |
 | **Observabilidad** | métricas de negocio y calidad, alertas, dashboard, registro de cada despliegue — [`observability.tf`](infra/platform/observability.tf), [`docs/observabilidad-despliegues.md`](docs/observabilidad-despliegues.md) |
@@ -62,7 +62,7 @@ recursos desplegados:
 | Gobierno por etiquetas: el analista consulta Gold y **no** Silver ni Bronze | ✅ 8 permitidas / 4 denegadas |
 | Intercambio B2B: el emisor EM001 lee y lista su carpeta, **no** la de EM005 | ✅ |
 | API de Gold: 5 rutas, `401` sin API key | ✅ |
-| IAM: 32 pruebas reales con impersonación | ✅ |
+| IAM: 33 pruebas reales con impersonación | ✅ |
 | Registro de cada despliegue en Cloud Logging + GCS | ✅ incluida la causa de cada fallo |
 
 Los 18 problemas que aparecieron al desplegar por primera vez, con su causa y su corrección, están en

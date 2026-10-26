@@ -20,16 +20,17 @@ resource "google_storage_bucket_object" "functions_source" {
 
 locals {
   common_env = {
-    GCP_PROJECT       = var.project_id
-    ENVIRONMENT       = var.environment
-    BRONZE_ROOT       = local.uri["bronze"]
-    SILVER_ROOT       = local.uri["silver"]
-    GOLD_ROOT         = local.uri["gold"]
-    EXCHANGE_ROOT     = local.uri["exchange"]
-    BQ_DATASET_SILVER = google_bigquery_dataset.layer["silver"].dataset_id
-    BQ_DATASET_GOLD   = google_bigquery_dataset.layer["gold"].dataset_id
-    BQ_CONNECTION     = "${var.project_id}.${var.region}.${google_bigquery_connection.lake.connection_id}"
-    LOOKBACK_DAYS     = tostring(var.lookback_days)
+    GCP_PROJECT        = var.project_id
+    ENVIRONMENT        = var.environment
+    BRONZE_ROOT        = local.uri["bronze"]
+    SILVER_ROOT        = local.uri["silver"]
+    GOLD_ROOT          = local.uri["gold"]
+    EXCHANGE_ROOT      = local.uri["exchange"]
+    BQ_DATASET_SILVER  = google_bigquery_dataset.layer["silver"].dataset_id
+    BQ_DATASET_GOLD    = google_bigquery_dataset.layer["gold"].dataset_id
+    BQ_DATASET_REPORTS = google_bigquery_dataset.layer["reports"].dataset_id
+    BQ_CONNECTION      = "${var.project_id}.${var.region}.${google_bigquery_connection.lake.connection_id}"
+    LOOKBACK_DAYS      = tostring(var.lookback_days)
   }
 
   functions = {

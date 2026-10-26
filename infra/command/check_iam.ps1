@@ -89,6 +89,7 @@ $checks = @(
     @{ who = "dataproc"; what = "listar Silver"; expect = "allowed"; why = "entrada del job"; run = { List-Gcs (Gs silver) } }
     @{ who = "dataproc"; what = "cambiar IAM de Bronze"; expect = "denied"; why = "el rol predefinido sí lo permitiría"; run = { gcloud storage buckets add-iam-policy-binding (Gs bronze) --member="serviceAccount:$(Sa dataproc)" --role=roles/storage.objectViewer --project=$Project | Out-Null } }
     @{ who = "analyst"; what = "BigQuery: Gold"; expect = "allowed"; why = "consulta los productos de datos"; run = { Query "$ds`_gold.interchange_settlement" } }
+    @{ who = "analyst"; what = "BigQuery: vista de reports (Power BI)"; expect = "allowed"; why = "las vistas de BI llevan la etiqueta de Gold"; run = { Query "$ds`_reports.interchange_settlement" } }
     @{ who = "analyst"; what = "BigQuery: Silver"; expect = "denied"; why = "la etiqueta layer=silver no le corresponde"; run = { Query "$ds`_silver.transactions" } }
     @{ who = "analyst"; what = "BigQuery: Bronze"; expect = "denied"; why = "ningún humano lee Bronze"; run = { Query "$ds`_bronze.transactions" } }
     @{ who = "analyst"; what = "leer Gold directo en GCS"; expect = "denied"; why = "los datos sólo llegan vía BigLake"; run = { Read-Gcs $goldObj } }
