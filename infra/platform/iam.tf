@@ -292,7 +292,7 @@ resource "google_bigquery_connection_iam_member" "delegate" {
 # es el único recurso detrás de IAP. roles/iap.httpsResourceAccessor tiene un solo permiso (accessViaIAP).
 # Cliente OAuth propio de IAP (obligatorio en proyectos sin organización); a nivel de proyecto, como el acceso
 resource "google_iap_settings" "web" {
-  count = var.iap_oauth_client_id != "" ? 1 : 0
+  count = var.iap_oauth_client_id != "" && var.iap_oauth_client_secret != "" ? 1 : 0
   name  = "projects/${local.project_number}/iap_web"
   access_settings {
     oauth_settings {

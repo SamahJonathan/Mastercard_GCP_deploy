@@ -5,7 +5,8 @@ name: Deploy
 # de la cuenta paylake-deploy. Ejecuta lo mismo que infra/command/deploy.ps1 (versión local).
 # Variables del repo (las crea infra/bootstrap/bootstrap.ps1):
 #   GCP_PROJECT_ID, GCP_REGION, GCP_WIF_PROVIDER, GCP_DEPLOY_SA, TF_STATE_BUCKET
-# Opcionales: ALERT_EMAIL, ENABLE_CDC (true/false), ADMIN_MEMBERS (p.ej. ["user:tu@gmail.com"])
+# Opcionales: ALERT_EMAIL, ENABLE_CDC (true/false), ADMIN_MEMBERS, CONSULTANT_MEMBERS, ANALYST_MEMBERS
+# (p.ej. ["user:tu@gmail.com"]), IAP_OAUTH_CLIENT_ID y el secret IAP_OAUTH_CLIENT_SECRET (dashboard)
 
 on:
   push:
@@ -32,6 +33,10 @@ env:
   TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
   TF_VAR_enable_cdc: ${{ vars.ENABLE_CDC || 'true' }}
   TF_VAR_admin_members: ${{ vars.ADMIN_MEMBERS || '[]' }}
+  TF_VAR_consultant_members: ${{ vars.CONSULTANT_MEMBERS || '[]' }}
+  TF_VAR_analyst_members: ${{ vars.ANALYST_MEMBERS || '[]' }}
+  TF_VAR_iap_oauth_client_id: ${{ vars.IAP_OAUTH_CLIENT_ID }}
+  TF_VAR_iap_oauth_client_secret: ${{ secrets.IAP_OAUTH_CLIENT_SECRET }}
   GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
 
 jobs:

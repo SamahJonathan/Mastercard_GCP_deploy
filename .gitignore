@@ -27,3 +27,6 @@ tfplan-*
 *.tfplan
 *_override.tf
 infra/platform/.build/
+
+# Credenciales OAuth descargadas de la consola (client_secret_*.json)
+client_secret*.json

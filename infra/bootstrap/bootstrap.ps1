@@ -117,7 +117,9 @@ $deployRoles = @(
     "roles/secretmanager.admin", "roles/monitoring.editor", "roles/logging.configWriter", "roles/logging.logWriter",
     "roles/iam.serviceAccountAdmin", "roles/iam.serviceAccountUser", "roles/iam.roleAdmin",
     "roles/resourcemanager.tagAdmin", "roles/resourcemanager.tagUser", "roles/serviceusage.serviceUsageConsumer",
-    "roles/cloudbuild.builds.editor", "roles/artifactregistry.reader"
+    "roles/cloudbuild.builds.editor", "roles/artifactregistry.reader",
+    # IAP del dashboard: su configuración y quién pasa (actúa sobre recursos de IAP, no sobre el proyecto)
+    "roles/iap.admin"
 )
 foreach ($r in $deployRoles) {
     Invoke-GCloud projects add-iam-policy-binding $ProjectId --member="serviceAccount:$DeploySa" --role=$r --condition=None --quiet | Out-Null
@@ -220,6 +222,18 @@ if ((Get-Command gh -ErrorAction SilentlyContinue) -and (Exists { gh repo view $
     if ($AlertEmail) { $vars.ALERT_EMAIL = $AlertEmail }
     # Mismos administradores que el despliegue local: si no, un deploy desde GitHub les quitaría el acceso
     if ($Account) { $vars.ADMIN_MEMBERS = "[`"user:$Account`"]" }
+    # Lo que vive sólo en project.auto.tfvars (fuera de git) también tiene que llegar a GitHub: si no, un
+    # deploy desde Actions quitaría el acceso a los consultores y la configuración de IAP del dashboard
+    $tfvarsText = Get-Content $TfVars -Raw
+    foreach ($pair in @(@("consultant_members", "CONSULTANT_MEMBERS"), @("analyst_members", "ANALYST_MEMBERS"), @("iap_oauth_client_id", "IAP_OAUTH_CLIENT_ID"))) {
+        $m = [regex]::Match($tfvarsText, "(?m)^\s*$($pair[0])\s*=\s*(.+?)\s*$")
+        if ($m.Success) { $vars[$pair[1]] = $m.Groups[1].Value.Trim('"') }
+    }
+    $secret = [regex]::Match($tfvarsText, '(?m)^\s*iap_oauth_client_secret\s*=\s*"(.+?)"')
+    if ($secret.Success) {
+        # Como secret cifrado de GitHub (no variable): no aparece en los logs ni en la interfaz
+        $secret.Groups[1].Value | gh secret set IAP_OAUTH_CLIENT_SECRET --repo $GithubRepo | Out-Null
+    }
     foreach ($k in $vars.Keys) { gh variable set $k --repo $GithubRepo --body $vars[$k] | Out-Null }
     Write-Host "Variables configuradas en $GithubRepo"
 } else {
