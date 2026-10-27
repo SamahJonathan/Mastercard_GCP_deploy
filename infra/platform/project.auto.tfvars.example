@@ -1,0 +1,18 @@
+# Ejemplo de project.auto.tfvars: la configuración propia de cada despliegue.
+# El archivo real lo crea infra/bootstrap/bootstrap.ps1 y NO se sube a git (.gitignore: *.tfvars),
+# porque lleva el ID del proyecto, los correos de las personas y el secreto OAuth del dashboard.
+# GitHub Actions recibe estos mismos valores como variables del repositorio (y el secreto como secret).
+
+project_id  = "paylake-gcp-xxxx"
+region      = "southamerica-east1"
+github_repo = "SamahJonathan/Mastercard_GCP_deploy"
+alert_email = "tu@correo.com"
+
+# Personas (cuentas de Google). Agregar o quitar a alguien = editar la lista y correr deploy.ps1
+admin_members      = ["user:admin@gmail.com"]     # Silver + Gold; pueden probar las identidades (check_iam.ps1)
+consultant_members = ["user:consultor@gmail.com"] # sólo Gold, BigQuery / Power BI y el dashboard web
+analyst_members    = []                           # sólo Gold
+
+# Dashboard web detrás de Identity-Aware Proxy: cliente OAuth creado en la consola (docs/iam.md)
+iap_oauth_client_id     = "<ID del cliente OAuth: ...apps.googleusercontent.com>"
+iap_oauth_client_secret = "<secreto del cliente OAuth>"
