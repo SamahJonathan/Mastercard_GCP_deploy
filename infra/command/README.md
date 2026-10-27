@@ -14,7 +14,7 @@ Todo lo que se ejecuta a mano vive aquí. Requisitos y primera vez: [docs/antes-
 | `destroy.ps1 -StopCdc` | para no pagar por hora | además apaga Cloud SQL, la VM y Datastream |
 | `destroy.ps1` | al terminar | destruye la plataforma (el bootstrap se conserva) |
 | `python scripts/run_queries.py` | consultar | las 12 consultas de `sql/` en BigQuery, con tope de 1 GB por consulta |
-| `bash dashboard/deploy_cloudrun.sh <proyecto>` | para quien no tiene cuenta de Google | el dashboard de Streamlit en Cloud Run, con contraseña (`terraform -chdir=infra/platform output -raw dashboard_password`) |
+| `bash dashboard/deploy_cloudrun.sh <proyecto>` | opcional | el dashboard de Streamlit en Cloud Run detrás de IAP: cada persona entra con su cuenta de Google ([iam.md](../../docs/iam.md)) |
 
 Cada `deploy`/`destroy` queda registrado en Cloud Logging y en el bucket del estado:
 [docs/observabilidad-despliegues.md](../../docs/observabilidad-despliegues.md).

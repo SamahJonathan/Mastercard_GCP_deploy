@@ -8,7 +8,6 @@ Fuente de datos:
 """
 from __future__ import annotations
 
-import hmac
 import os
 
 import pandas as pd
@@ -18,20 +17,15 @@ import streamlit as st
 API_URL = os.getenv("GOLD_API_URL", "").rstrip("/")
 API_KEY = os.getenv("GOLD_API_KEY", "")
 DATA_ROOT = os.getenv("DATA_ROOT", "data")
-PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")  # en Cloud Run viene de Secret Manager
 
 st.set_page_config(page_title="Payments Lakehouse", layout="wide")
 
-# Acceso con contraseña: sin ella no se carga ningún dato (en local, sin DASHBOARD_PASSWORD, no se pide)
-if PASSWORD and not st.session_state.get("authenticated"):
-    st.title("Payments Lakehouse")
-    attempt = st.text_input("Contraseña", type="password")
-    if attempt and hmac.compare_digest(attempt.encode(), PASSWORD.encode()):
-        st.session_state["authenticated"] = True
-        st.rerun()
-    elif attempt:
-        st.error("Contraseña incorrecta")
-    st.stop()
+
+def signed_in_user() -> str | None:
+    """En Cloud Run el acceso lo controla Identity-Aware Proxy: cada persona entra con su cuenta de Google y
+    IAP agrega su correo en este header (formato accounts.google.com:correo)."""
+    email = st.context.headers.get("X-Goog-Authenticated-User-Email")
+    return email.split(":", 1)[-1] if email else None
 
 
 @st.cache_data(ttl=300)
@@ -56,7 +50,9 @@ def load(table: str, day: str | None = None) -> pd.DataFrame:
 
 
 st.title("Payments Lakehouse · capa Gold")
-st.caption(f"Fuente: {'API de Gold' if API_URL else 'local ' + DATA_ROOT} · datos 100% sintéticos")
+user = signed_in_user()
+st.caption(f"Fuente: {'API de Gold' if API_URL else 'local ' + DATA_ROOT} · datos 100% sintéticos"
+           + (f" · sesión: {user}" if user else ""))
 
 dates = available_dates()
 if not dates:

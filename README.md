@@ -44,7 +44,7 @@ archivos de liquidación que cada banco emisor descarga de **su** carpeta. Todo 
 | **SQL avanzado** | ventanas, z-score, `APPROX_QUANTILES`, cohortes, `ROLLUP`/`GROUPING`, `COUNTIF` — [`sql/advanced/`](sql/advanced/); Spark SQL en Dataproc |
 | **Python / Shell** | paquete `payments_lake`, 44 tests; scripts PowerShell/bash en [`infra/command/`](infra/command/) |
 | **CI/CD** | tests (también con las versiones exactas de las functions), `terraform validate`, YAML de Workflows, ShellCheck, deploy con WIF |
-| **BI** | Power BI con el conector de BigQuery ([`docs/powerbi.md`](docs/powerbi.md)) y Looker Studio ([`docs/looker-studio.md`](docs/looker-studio.md)) |
+| **BI** | Power BI con el conector de BigQuery ([`powerbi/datos_lake_pbi_gcp.pbix`](powerbi/datos_lake_pbi_gcp.pbix), [`docs/powerbi.md`](docs/powerbi.md)) y Looker Studio ([`docs/looker-studio.md`](docs/looker-studio.md)) |
 
 ## Verificado en Google Cloud
 
@@ -62,11 +62,10 @@ recursos desplegados:
 | Gobierno por etiquetas: el analista consulta Gold y **no** Silver ni Bronze | ✅ 8 permitidas / 4 denegadas |
 | Intercambio B2B: el emisor EM001 lee y lista su carpeta, **no** la de EM005 | ✅ |
 | API de Gold: 5 rutas, `401` sin API key | ✅ |
-| Dashboard web en Cloud Run: sin contraseña no muestra datos; con ella, los KPIs de Gold | ✅ |
 | IAM: 33 pruebas reales con impersonación | ✅ |
 | Registro de cada despliegue en Cloud Logging + GCS | ✅ incluida la causa de cada fallo |
 
-Los 18 problemas que aparecieron al desplegar por primera vez, con su causa y su corrección, están en
+Los 19 problemas que aparecieron al desplegar por primera vez, con su causa y su corrección, están en
 [docs/antes-de-desplegar.md](docs/antes-de-desplegar.md#problemas-que-ya-aparecieron).
 
 ## Arquitectura

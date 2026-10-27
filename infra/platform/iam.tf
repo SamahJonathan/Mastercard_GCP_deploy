@@ -30,7 +30,7 @@ locals {
       bronze-to-silver = "Function bronze->silver: lee Bronze, escribe Silver y registra sus tablas"
       silver-to-gold   = "Function silver->gold: lee Silver, escribe Gold y las liquidaciones salientes"
       api              = "Function de la API: sólo lee Gold"
-      dashboard        = "Dashboard Streamlit (Cloud Run): sólo lee la API key y su contraseña"
+      dashboard        = "Dashboard Streamlit (Cloud Run, detrás de IAP): sólo lee la API key"
       fn-build         = "Cloud Build de las functions: lee el código y publica la imagen"
       pipeline-wf      = "Workflow del pipeline: sólo invoca las 3 etapas"
       analytics-wf     = "Workflow diario: sólo lanza el batch de Dataproc con la cuenta dataproc"
@@ -287,11 +287,26 @@ resource "google_bigquery_connection_iam_member" "delegate" {
   depends_on = [google_project_iam_custom_role.this]
 }
 
-resource "google_secret_manager_secret_iam_member" "dashboard_password" {
-  secret_id  = google_secret_manager_secret.this["dashboard-password"].id
-  role       = local.role["paylakeSecretReader"]
-  member     = local.sa["dashboard"]
-  depends_on = [google_project_iam_custom_role.this]
+# Dashboard web: Identity-Aware Proxy pide iniciar sesión con Google y sólo deja pasar a estas personas.
+# Va a nivel de proyecto porque el servicio de Cloud Run lo crea dashboard/deploy_cloudrun.sh (no Terraform) y
+# es el único recurso detrás de IAP. roles/iap.httpsResourceAccessor tiene un solo permiso (accessViaIAP).
+# Cliente OAuth propio de IAP (obligatorio en proyectos sin organización); a nivel de proyecto, como el acceso
+resource "google_iap_settings" "web" {
+  count = var.iap_oauth_client_id != "" ? 1 : 0
+  name  = "projects/${local.project_number}/iap_web"
+  access_settings {
+    oauth_settings {
+      client_id     = var.iap_oauth_client_id
+      client_secret = var.iap_oauth_client_secret
+    }
+  }
+}
+
+resource "google_iap_web_iam_member" "dashboard" {
+  for_each = toset(distinct(concat(var.consultant_members, var.analyst_members, var.admin_members)))
+  project  = var.project_id
+  role     = "roles/iap.httpsResourceAccessor"
+  member   = each.value
 }
 
 resource "google_secret_manager_secret_iam_member" "dashboard_api_key" {

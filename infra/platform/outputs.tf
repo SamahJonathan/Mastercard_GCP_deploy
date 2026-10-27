@@ -27,12 +27,6 @@ output "api_key" {
   sensitive = true
 }
 
-output "dashboard_password" {
-  description = "Contraseña del dashboard web (dashboard/deploy_cloudrun.sh)"
-  value       = random_password.dashboard.result
-  sensitive   = true
-}
-
 output "service_accounts" {
   description = "Correo de cada identidad (para impersonar: --impersonate-service-account=<correo>)"
   value       = { for k, s in google_service_account.this : k => s.email }

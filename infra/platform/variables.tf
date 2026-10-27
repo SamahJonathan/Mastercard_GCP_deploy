@@ -120,3 +120,20 @@ variable "max_bytes_billed" {
   type        = number
   default     = 1073741824
 }
+
+# --- Dashboard web (Identity-Aware Proxy) ------------------------------------------------------
+# En un proyecto sin organización IAP necesita un cliente OAuth propio, que sólo se crea desde la consola
+# (Google Auth Platform → Clientes). Vacíos = IAP sin configurar (el dashboard responde 502).
+
+variable "iap_oauth_client_id" {
+  description = "ID del cliente OAuth (aplicación web) que usa IAP para el inicio de sesión del dashboard"
+  type        = string
+  default     = ""
+}
+
+variable "iap_oauth_client_secret" {
+  description = "Secreto de ese cliente OAuth (va en project.auto.tfvars, fuera de git)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

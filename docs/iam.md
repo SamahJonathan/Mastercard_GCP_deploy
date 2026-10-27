@@ -68,10 +68,15 @@ Personas (variables de Terraform, sin cuentas propias que administrar):
 | `analyst_members` | lo mismo que `analyst` (sólo Gold) |
 | `consultant_members` | consultan Gold directo con su cuenta de Google, sin cambiar de identidad |
 
-Quien **no tiene cuenta de Google** no puede entrar a BigQuery (IAM sólo acepta identidades de Google). Para esos
-casos está el **dashboard web** en Cloud Run: muestra los productos de Gold detrás de una contraseña guardada en
-Secret Manager (`terraform output -raw dashboard_password`). Lo lee sólo la cuenta `dashboard`, y la API key de Gold
-nunca llega al navegador.
+El **dashboard web** (Streamlit en Cloud Run) está detrás de **Identity-Aware Proxy**: cada persona inicia sesión con
+su cuenta de Google y sólo pasan las de estas tres listas (`roles/iap.httpsResourceAccessor`, un solo permiso). El
+servicio no es público: su único invocador es el agente de IAP. La API key de Gold la lee la cuenta `dashboard`
+desde Secret Manager y nunca llega al navegador.
+
+En un proyecto **sin organización**, IAP necesita un cliente OAuth propio, que sólo se crea desde la consola:
+*Google Auth Platform* → *Público*: **Externo**, en **Prueba**, con las cuentas autorizadas como usuarios de prueba →
+*Clientes* → *Aplicación web* con el URI de redirección `https://iap.googleapis.com/v1/oauth/clientIds/<CLIENT_ID>:handleRedirect`.
+El ID y el secreto van en `iap_oauth_client_id` / `iap_oauth_client_secret` de `project.auto.tfvars` (fuera de git).
 
 ## Gobierno por etiquetas
 
