@@ -76,7 +76,8 @@ desde Secret Manager y nunca llega al navegador.
 En un proyecto **sin organización**, IAP necesita un cliente OAuth propio, que sólo se crea desde la consola:
 *Google Auth Platform* → *Público*: **Externo**, en **Prueba**, con las cuentas autorizadas como usuarios de prueba →
 *Clientes* → *Aplicación web* con el URI de redirección `https://iap.googleapis.com/v1/oauth/clientIds/<CLIENT_ID>:handleRedirect`.
-El ID y el secreto van en `iap_oauth_client_id` / `iap_oauth_client_secret` de `project.auto.tfvars` (fuera de git).
+El ID va en `iap_oauth_client_id` de `project.auto.tfvars` y el secreto en `iap_oauth_client_secret` de
+`secrets.auto.tfvars`, que no se sube a git.
 
 ## Gobierno por etiquetas
 

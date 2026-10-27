@@ -29,7 +29,8 @@ Nada de llaves JSON: Terraform usa tus credenciales de usuario en el PC y Worklo
 ```
 
 El bootstrap crea un proyecto nuevo `paylake-gcp-xxxx` (o reutiliza el de `infra/platform/project.auto.tfvars`),
-y escribe `backend.hcl` y `project.auto.tfvars`, ambos fuera de git. **No cambia** el proyecto activo de tu
+y escribe `backend.hcl` (fuera de git) y, si no existe, `project.auto.tfvars`: la configuración del despliegue, que
+se versiona y no lleva secretos (esos van en `secrets.auto.tfvars`, fuera de git). **No cambia** el proyecto activo de tu
 configuración de gcloud: todos los comandos pasan `--project`.
 
 El primer `deploy` tarda ~25 minutos: Cloud SQL (~12), la compilación de las 4 functions y una espera de 5

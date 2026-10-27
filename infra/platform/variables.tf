@@ -132,7 +132,7 @@ variable "iap_oauth_client_id" {
 }
 
 variable "iap_oauth_client_secret" {
-  description = "Secreto de ese cliente OAuth (va en project.auto.tfvars, fuera de git)"
+  description = "Secreto de ese cliente OAuth (va en secrets.auto.tfvars, fuera de git)"
   type        = string
   default     = ""
   sensitive   = true

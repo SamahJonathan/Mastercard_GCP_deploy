@@ -10,7 +10,7 @@
     5. Workload Identity Federation para GitHub Actions (OIDC, sin llaves JSON)
     6. Historial de despliegues: log bucket con retención de 1 año + sink
     7. Presupuesto mensual con avisos al 80 % real y 100 % pronosticado
-    8. infra/platform/backend.hcl y infra/platform/project.auto.tfvars (ignorados por git)
+    8. infra/platform/backend.hcl (ignorado por git) y, si no existe, infra/platform/project.auto.tfvars
     9. Variables del repositorio de GitHub (si existe y gh está autenticado)
 
   Es idempotente: se puede volver a ejecutar para actualizar el techo de roles o las variables de GitHub.
@@ -207,11 +207,15 @@ Step "8/9 Configuración local de Terraform"
 bucket = "$StateBucket"
 prefix = "platform"
 "@ | Set-Content -Path (Join-Path $Platform "backend.hcl") -Encoding utf8
-$lines = @("project_id  = `"$ProjectId`"", "region      = `"$Region`"", "github_repo = `"$GithubRepo`"")
-if ($AlertEmail) { $lines += "alert_email = `"$AlertEmail`"" }
-if ($Account) { $lines += "admin_members = [`"user:$Account`"]" }
-$lines | Set-Content -Path $TfVars -Encoding utf8
-if (Get-Command terraform -ErrorAction SilentlyContinue) { terraform fmt $TfVars | Out-Null }  # deploy.ps1 exige fmt
+# Sólo se crea si no existe: después se edita a mano (personas, cliente OAuth) y re-ejecutar el bootstrap
+# no debe pisar esos cambios
+if (-not (Test-Path $TfVars)) {
+    $lines = @("project_id  = `"$ProjectId`"", "region      = `"$Region`"", "github_repo = `"$GithubRepo`"")
+    if ($AlertEmail) { $lines += "alert_email = `"$AlertEmail`"" }
+    if ($Account) { $lines += "admin_members = [`"user:$Account`"]" }
+    $lines | Set-Content -Path $TfVars -Encoding utf8
+    if (Get-Command terraform -ErrorAction SilentlyContinue) { terraform fmt $TfVars | Out-Null }  # deploy.ps1 exige fmt
+}
 
 Step "9/9 Variables de GitHub Actions"
 if ((Get-Command gh -ErrorAction SilentlyContinue) -and (Exists { gh repo view $GithubRepo })) {
@@ -222,14 +226,16 @@ if ((Get-Command gh -ErrorAction SilentlyContinue) -and (Exists { gh repo view $
     if ($AlertEmail) { $vars.ALERT_EMAIL = $AlertEmail }
     # Mismos administradores que el despliegue local: si no, un deploy desde GitHub les quitaría el acceso
     if ($Account) { $vars.ADMIN_MEMBERS = "[`"user:$Account`"]" }
-    # Lo que vive sólo en project.auto.tfvars (fuera de git) también tiene que llegar a GitHub: si no, un
+    # Lo que está en project.auto.tfvars y secrets.auto.tfvars también tiene que llegar a GitHub: si no, un
     # deploy desde Actions quitaría el acceso a los consultores y la configuración de IAP del dashboard
     $tfvarsText = Get-Content $TfVars -Raw
     foreach ($pair in @(@("consultant_members", "CONSULTANT_MEMBERS"), @("analyst_members", "ANALYST_MEMBERS"), @("iap_oauth_client_id", "IAP_OAUTH_CLIENT_ID"))) {
         $m = [regex]::Match($tfvarsText, "(?m)^\s*$($pair[0])\s*=\s*(.+?)\s*$")
         if ($m.Success) { $vars[$pair[1]] = $m.Groups[1].Value.Trim('"') }
     }
-    $secret = [regex]::Match($tfvarsText, '(?m)^\s*iap_oauth_client_secret\s*=\s*"(.+?)"')
+    $secretsFile = Join-Path $Platform "secrets.auto.tfvars"
+    $secretsText = if (Test-Path $secretsFile) { Get-Content $secretsFile -Raw } else { "" }
+    $secret = [regex]::Match($secretsText, '(?m)^\s*iap_oauth_client_secret\s*=\s*"(.+?)"')
     if ($secret.Success) {
         # Como secret cifrado de GitHub (no variable): no aparece en los logs ni en la interfaz
         $secret.Groups[1].Value | gh secret set IAP_OAUTH_CLIENT_SECRET --repo $GithubRepo | Out-Null

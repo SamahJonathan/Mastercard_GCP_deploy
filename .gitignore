@@ -4,6 +4,8 @@
 *.json.key
 .env
 *.tfvars
+# ...salvo la configuración del despliegue, que no lleva secretos (están en secrets.auto.tfvars)
+!infra/platform/project.auto.tfvars
 backend.hcl
 
 # Python
